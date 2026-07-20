@@ -49,10 +49,9 @@ export const ProductosPage = () => {
     const [resultados, setResultados] = useState<Producto[]>([])
     const [query, setQuery] = useState('')
 
-    const displayId = id != null ? id : '--'
     const navigate = useNavigate();
 
-    const { register, handleSubmit, reset, watch, formState: {errors} } = useForm<ProductoForm>({
+    const { register, handleSubmit, reset, formState: {errors} } = useForm<ProductoForm>({
         resolver: zodResolver(schema as any),
         defaultValues: {
             nombre: '',
@@ -179,10 +178,47 @@ export const ProductosPage = () => {
                 </SectionCard>
 
                 <SectionCard label="Stocks" icon={<IconStack size={14} />}>
-                    <FormInput label="Stock Mínimo" icon={<IconStack size={13} />} required placeholder="Ej. 6" width="1/2"/>
-                    <FormInput label="Stock Maximo" icon={<IconStack size={13} />} required placeholder="Ej. 32" width="1/2"/>
+                    <FormInput {...register('stockminimo')} label="Stock Mínimo" icon={<IconStack size={13} />} required placeholder="Ej. 6" width="1/2"/>
+                    <FormInput {...register('stockmaximo')} label="Stock Maximo" icon={<IconStack size={13} />} required placeholder="Ej. 32" width="1/2"/>
                 </SectionCard>
 
+                <SearchModal 
+                    isOpen={open}
+                    onClose={() => {
+                        setOpen(false)
+                        setResultados([])
+                    }}
+                    onSearch={async (q) => {
+                        const data = await productosService.search(q)
+                        setResultados(data)
+                    }}
+                    onSelect={(producto: Producto) => {
+                        setId(producto.idproducto)
+                        setMode('editar')
+                        reset({
+                            codigobarras: producto.codigobarras ?? '',
+                            nombre: producto.nombre,
+                            unidadmedida: producto.unidadmedida,
+                            iddepartamento: producto.iddepartamento,
+                            idproveedor: producto.idproveedor ?? 0,
+                            costo: producto.costo,
+                            ganancia: producto.ganancia,
+                            precio: producto.precio,
+                            stockminimo: producto.stockminimo,
+                            stockmaximo: producto.stockmaximo
+                        })
+                        setOpen(false)
+                    }}
+                    title="Buscar producto"
+                    placeholder="Nombre o Código de barras..."
+                    columns={[
+                        { header: 'Código de Barras', accessor: 'codigobarras' as keyof Producto },
+                        { header: 'Nombre', accessor: 'nombre' as keyof Producto },
+                        { header: 'Precio', accessor: 'precio' as keyof Producto }
+                    ]}
+                    data={resultados}
+                    emptyText="No se encontraron productos"
+                />
 
             </div>
             <BottomBar 
@@ -193,6 +229,8 @@ export const ProductosPage = () => {
                             variant="gWhite" 
                             onClick={async () => {
                                 const data = await productosService.search('')
+                                setResultados(data)
+                                setOpen(true)
                             }}
                         />
                         <ActionButton 
@@ -207,6 +245,7 @@ export const ProductosPage = () => {
                             label="Cancelar" 
                             icon={<IconX size={14} />} 
                             variant="gWhite" 
+                            onClick={() => setMode('nuevo')}
                         />
                     </>}
                     btnsRight={

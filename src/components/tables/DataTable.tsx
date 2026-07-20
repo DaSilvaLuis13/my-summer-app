@@ -10,7 +10,7 @@ interface DataTableProps<T> {
     columns: Column<T>[]
     data: T[]
     emptyText?: string
-    isLoading?: boolean // <-- Agregado para controlar el estado de espera
+    isLoading?: boolean 
 }
 
 export const DataTable = <T extends object>({

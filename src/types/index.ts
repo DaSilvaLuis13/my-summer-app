@@ -254,6 +254,23 @@ export interface GastoVario {
   descripcion:       string | null
 }
 
+export interface AccesoRapido {
+  idacceso: number
+  idproducto: number
+  posicion: number
+  activo: boolean
+}
+
+export interface AccesoRapidoCompleto extends AccesoRapido {
+  nombre:         string
+  precio:         number
+  iddepartamento: number
+  codigobarras:   string | null
+  unidadmedida:   string | null
+}
+
+export type NuevoAccesoRapido = Omit<AccesoRapido, 'idacceso'>
+
 // ------------------------------------------------------------
 //  Tipos utilitarios generales
 // ------------------------------------------------------------

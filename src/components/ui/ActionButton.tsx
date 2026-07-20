@@ -1,7 +1,7 @@
 //src/components/ui/ActionButton.tsx
 
 interface ActionButtonProps {
-    label: string
+    label?: string
     icon?: React.ReactNode
     variant?: 'success' | 'danger' | 'ghost' | 'gWhite'
     onClick?: () => void

@@ -9,6 +9,8 @@ import { RolesPage } from './pages/catalogos/RolesPage'
 import { DepartamentosPage } from './pages/catalogos/DepartamentosPage'
 import { ClientesListPage } from './pages/consultas/ClientesListPage'
 import { ProductosListPage } from './pages/consultas/ProductosListPage'
+import { ProveedorListPage } from './pages/consultas/ProveedoresListPage'
+import { AccesoRapido } from './pages/secciones/AccesoRapido'
 
 
 function App() {
@@ -28,6 +30,10 @@ function App() {
 
         <Route path='/consultas/clientes' element={<ClientesListPage />} />
         <Route path='/consultas/productos' element={<ProductosListPage />} />
+        <Route path='/consultas/proveedores' element={<ProveedorListPage />} />
+
+
+        <Route path='/secciones/accesorapido' element={<AccesoRapido />} />
       </Route>
     </Routes>
   )
