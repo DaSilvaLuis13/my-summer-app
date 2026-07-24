@@ -22,6 +22,23 @@ export const accesorapidoService = {
         return data
     },
 
+    async updateOrder(idsOrdenados: number[]): Promise<void> {
+        // Creamos una promesa de actualización por cada ID según su nuevo índice (posición)
+        const promesas = idsOrdenados.map((idacceso, index) => 
+            supabase
+                .from('accesorapido')
+                .update({ posicion: index })
+                .eq('idacceso', idacceso)
+        )
+
+        // Ejecutamos todas las peticiones al mismo tiempo
+        const resultados = await Promise.all(promesas)
+
+        // Validamos si alguna petición falló
+        const error = resultados.find(res => res.error)
+        if (error) throw error.error
+    },
+
     // Agregar un producto nuevo al acceso rápido
     async add(idproducto: number): Promise<AccesoRapido> {
         // calcular siguiente posición

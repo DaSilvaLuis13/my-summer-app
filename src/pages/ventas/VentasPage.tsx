@@ -13,6 +13,7 @@ import { accesorapidoService } from '../../services/accesorapidoService'
 import type { Producto, ItemCarrito, AccesoRapidoCompleto } from '../../types'
 import { SearchModal } from '../../components/ui/SearchModal'
 import { productosService } from "../../services/productosService"
+import { PaymentModal } from '../../components/pos/PaymentModal'
 
 
 const UNIDADES_POR_PESO = ['Kg', 'Litro']
@@ -24,6 +25,8 @@ export const VentasPage = () => {
 
     const [id, setId] = useState<number | null>(null)
 
+    const [modoGenerico, setModoGenerico] = useState(false)
+    const [descripcion, setDescripcion] = useState('')
 
     const [productoPendiente, setProductoPendiente] = useState<Producto | null>(null)
     const [precio, setPrecio] = useState<number>(0)
@@ -31,6 +34,9 @@ export const VentasPage = () => {
 
     const [open, setOpen] = useState(false)
     const [resultados, setResultados] = useState<Producto[]>([])
+
+    const [cobroAbierto, setCobroAbierto] = useState(false)
+
 
 
     // Cargar productos del acceso rápido desde Superbase
@@ -132,6 +138,50 @@ export const VentasPage = () => {
         setCarrito(prev => prev.filter(i => i.producto.idproducto !== idproducto))
     }
 
+    const abrirProductoGenerico = () => {
+        setModoGenerico(true)
+        setPrecio(0)
+        setDescripcion('')
+    }
+
+    const confirmarGenerico = () => {
+    if (precio <= 0 || !descripcion) return
+
+    const productoFicticio: Producto = {
+        idproducto:     -Date.now(),   // ID temporal negativo, único
+        nombre:         descripcion,
+        precio:         precio,
+        iddepartamento: 0,
+        idproveedor:    null,
+        codigobarras:   null,
+        costo:          0,
+        ganancia:       0,
+        unidadmedida:   null,
+        stockminimo:    0,
+        stockmaximo:    0,
+        stockactual:    0,
+        activo:         true,
+    }
+
+    setCarrito(prev => [...prev, {
+        producto: productoFicticio,
+        cantidad: 1,
+        preciounitario: precio,
+        descuento: 0,
+        importe: precio,
+    }])
+
+    cerrarModal()
+}
+
+    const cerrarModal = () => {
+        setProductoPendiente(null)
+        setModoGenerico(false)
+        setPrecio(0)
+        setPeso(0)
+        setDescripcion('')
+    }
+
     // Cálculos de caja
     const subtotal  = carrito.reduce((acc, i) => acc + i.importe, 0)
     const descuento = 0
@@ -177,13 +227,13 @@ export const VentasPage = () => {
                             <p className='text-sm font-medium text-(--color-text-main)'>Acceso rápido</p>
                             <p className='text-xs text-(--color-text-muted)'>Top artículos</p>
                         </div>
-                        <button
+
+                        <ActionButton
+                            label="Editar"
+                            icon={<IconEdit size={14} />}
+                            variant='success'
                             onClick={() => navigate('/secciones/accesorapido')}
-                            className='text-xs text-(--color-text-muted) hover:text-(--color-text-main) flex items-center gap-1 transition-colors'
-                        >
-                            <IconEdit size={13} />
-                            Editar
-                        </button>
+                        />
                     </div>
 
                     {/* Grid */}
@@ -209,7 +259,11 @@ export const VentasPage = () => {
                                 <span>Total</span><span>${total.toFixed(2)}</span>
                             </div>
                         </div>
-                        <button className='w-full py-3 bg-green-700 hover:bg-green-800 text-white text-sm font-medium rounded-xl flex items-center justify-center gap-2 transition-colors'>
+                        {/*016630 */}
+                        <button 
+                            className='w-full py-3 bg-(--color-success-border) text-(--color-success-text) hover:bg-(--color-success-hover) hover:text-white text-sm font-medium rounded-xl cursor-pointer flex items-center justify-center gap-2 transition-colors'
+                            onClick={() => setCobroAbierto(true)}    
+                        >
                             <IconCash size={16} />
                             Cobrar
                         </button>
@@ -219,52 +273,52 @@ export const VentasPage = () => {
             </div>
 
             {/* ── Modal: capturar precio/peso antes de agregar ── */}
-            {productoPendiente && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center">
-                    <div
-                        className="absolute inset-0 bg-black/50"
-                        onClick={cerrarModalPeso}
-                    />
-                    <div className="relative z-10 bg-(--color-surface) rounded-2xl shadow-xl w-full max-w-sm mx-4 p-5 flex flex-col gap-4">
- 
-                        <div className="flex items-center justify-between">
-                            <h3 className="text-sm font-medium text-(--color-text-main)">
-                                {productoPendiente.nombre}
-                            </h3>
-                            <button
-                                onClick={cerrarModalPeso}
-                                className="text-(--color-text-muted) hover:text-(--color-text-main)"
-                            >
-                                <IconX size={16} />
-                            </button>
-                        </div>
- 
-                        <div className="flex gap-3">
-                            <QtyValue
-                                precio={precio}
-                                peso={peso}
-                                onPrecioChange={manejarCambioPrecio} 
-                                onPesoChange={manejarCambioPeso}
-                            />
-                        </div>
- 
-                        <div className="flex justify-between items-center px-3 py-2 bg-(--color-success-bg) border border-(--color-success-border) rounded-lg">
-                            <span className="text-xs font-medium text-(--color-success-text)">Subtotal</span>
-                            <span className="text-base font-semibold text-(--color-success-text)">
-                                ${(precio * peso).toFixed(2)}
-                            </span>
-                        </div>
- 
-                        <ActionButton
-                            label="Agregar a la venta"
-                            icon={<IconCash size={14} />}
-                            variant="success"
-                            disabled={peso <= 0}
-                            onClick={confirmarPorPeso}
+            {(productoPendiente || modoGenerico) && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center">
+                <div
+                    className="absolute inset-0 bg-black/50"
+                    onClick={cerrarModal}
+                />
+                <div className="relative z-10 bg-(--color-surface) rounded-2xl shadow-xl w-full max-w-sm mx-4 p-5 flex flex-col gap-4">
+
+                    <div className="flex items-center justify-between">
+                        <h3 className="text-sm font-medium text-(--color-text-main)">
+                            {modoGenerico ? 'Producto genérico' : productoPendiente?.nombre}
+                        </h3>
+                        <button onClick={cerrarModal} className="text-(--color-text-muted) hover:text-(--color-text-main)">
+                            <IconX size={16} />
+                        </button>
+                    </div>
+
+                    <div className="flex gap-3">
+                        <QtyValue
+                            precio={precio}
+                            datoextra={modoGenerico ? descripcion : peso}
+                            onPrecioChange={modoGenerico ? setPrecio : manejarCambioPrecio}
+                            onDatoExtraChange={modoGenerico 
+                                ? (v) => setDescripcion(v as string) 
+                                : (v) => manejarCambioPeso(v as number)
+                            }
                         />
                     </div>
+
+                    <div className="flex justify-between items-center px-3 py-2 bg-(--color-success-bg) border border-(--color-success-border) rounded-lg">
+                        <span className="text-xs font-medium text-(--color-success-text)">Subtotal</span>
+                        <span className="text-base font-semibold text-(--color-success-text)">
+                            ${(modoGenerico ? precio : precio * peso).toFixed(2)}
+                        </span>
+                    </div>
+
+                    <ActionButton
+                        label="Agregar a la venta"
+                        icon={<IconCash size={14} />}
+                        variant="success"
+                        disabled={modoGenerico ? (precio <= 0 || !descripcion) : peso <= 0}
+                        onClick={modoGenerico ? confirmarGenerico : confirmarPorPeso}
+                    />
                 </div>
-            )}
+            </div>
+        )}
 
                 <SearchModal 
                     isOpen={open}
@@ -291,6 +345,18 @@ export const VentasPage = () => {
                     emptyText="No se encontraron productos"
                 />
 
+                <PaymentModal
+                    isOpen={cobroAbierto}
+                    total={total}
+                    numeroVenta={834}   // vendría de tu servicio de ventas
+                    cantidadArticulos={carrito.length}
+                    onClose={() => setCobroAbierto(false)}
+                    onConfirm={(metodo, pagado, cambio, imprimir, cliente) => {
+                        // aquí llamas a ventasService.create() con todos los datos
+                        console.log({ metodo, pagado, cambio, imprimir, cliente })
+                    }}
+                />
+
             <BottomBar
                 btnsLeft={<>
                     <ActionButton 
@@ -303,7 +369,12 @@ export const VentasPage = () => {
                                 setOpen(true)
                             }}
                         />
-                    <ActionButton label="Producto Genérico" icon={<IconBaguette     size={14} />} variant="gWhite" />
+                    <ActionButton 
+                        label="Producto Genérico" 
+                        icon={<IconBaguette     size={14} />} 
+                        variant="gWhite" 
+                        onClick={async () => abrirProductoGenerico()}
+                    />
                     <ActionButton label="Ventas"            icon={<IconTable        size={14} />} variant="gWhite" />
                     <ActionButton label="Devolución"        icon={<IconArrowLeftTail size={14} />} variant="gWhite" />
                     <ActionButton label="Cerrar Caja"       icon={<IconMoneybag     size={14} />} variant="gWhite" />

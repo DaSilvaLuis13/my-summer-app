@@ -1,6 +1,6 @@
 //src/components/pos/QuickAccessGrid.tsx
 import { useState } from 'react'
-import { IconSearch, IconChevronLeft, IconChevronRight } from '@tabler/icons-react'
+import { IconChevronLeft, IconChevronRight } from '@tabler/icons-react'
 import { ProductButton } from './ProductButton'
 import type { Producto } from '../../types'
 

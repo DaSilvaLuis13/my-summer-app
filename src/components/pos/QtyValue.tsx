@@ -1,20 +1,23 @@
 // src/components/pos/QtyValue.tsx
-import { IconMoneybag, IconWeight } from '@tabler/icons-react'
+import { IconMoneybag, IconWeight, IconFileText } from '@tabler/icons-react'
 import { FormInput } from '../forms/FormInput'
 
 interface QtyValueProps {
-    precio:        number
-    peso:          number
+    precio:        number 
+    datoextra:          number | string
     onPrecioChange: (value: number) => void
-    onPesoChange:   (value: number) => void
+    onDatoExtraChange:   (value: number | string) => void
 }
+
 
 export const QtyValue = ({ 
     precio, 
-    peso, 
+    datoextra, 
     onPrecioChange, 
-    onPesoChange 
+    onDatoExtraChange 
 }: QtyValueProps) => {
+
+    const esPeso = typeof datoextra === 'number'
 
     return (
         <>
@@ -28,13 +31,15 @@ export const QtyValue = ({
                 onChange={(e) => onPrecioChange(Number(e.target.value))}
             />
             <FormInput
-                label="Peso"
-                icon={<IconWeight size={13} />}
-                type="number"
-                placeholder="0.00"
+                label={ esPeso ? 'Peso' : 'Descripcion'}
+                icon={ esPeso ? <IconWeight size={13} /> : <IconFileText size={13} />}
+                type={ esPeso ? 'number' : 'text'}
+                placeholder={ esPeso ? '0.00' : 'producto generico'}
                 width="1/2"
-                value={peso || ''}
-                onChange={(e) => onPesoChange(Number(e.target.value))}
+                value={datoextra || ''}
+                onChange={(e) => 
+                    onDatoExtraChange(esPeso ? Number(e.target.value) : e.target.value)
+                }
             />
         </>
     )

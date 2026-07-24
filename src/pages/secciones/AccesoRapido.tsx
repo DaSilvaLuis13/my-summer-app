@@ -10,6 +10,9 @@ import { accesorapidoService } from '../../services/accesorapidoService'
 import { productosService } from '../../services/productosService'
 import type { AccesoRapidoCompleto, Producto } from '../../types'
 import toast from 'react-hot-toast'
+import { DndContext, closestCenter, type KeyboardSensor, PointerSensor, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core'
+import { arrayMove, SortableContext, rectSortingStrategy } from '@dnd-kit/sortable'
+import { SortableProduct } from '../../hooks/SortableProduct'
 
 export const AccesoRapido = () => {
     const navigate = useNavigate()
@@ -18,6 +21,43 @@ export const AccesoRapido = () => {
     const [open,       setOpen]       = useState(false)
     const [resultados, setResultados] = useState<Producto[]>([])
     const [loading,    setLoading]    = useState(true)
+
+    const sensors = useSensors(
+        useSensor(PointerSensor, {
+            activationConstraint: {
+                distance: 5,
+            },
+        })
+    )
+
+    const handleDragEnd = async (event: DragEndEvent) => {
+        const { active, over } = event
+
+        if (over && active.id !== over.id) {
+            // Guardamos un respaldo por si falla la base de datos
+            const itemsAntiguos = [...items]
+            let nuevoOrdenItems: AccesoRapidoCompleto[] = []
+
+            // 1. Actualizamos la UI al instante para que el usuario no sienta demoras
+            setItems((currentItems) => {
+                const oldIndex = currentItems.findIndex((i) => i.idacceso === active.id)
+                const newIndex = currentItems.findIndex((i) => i.idacceso === over.id)
+                
+                nuevoOrdenItems = arrayMove(currentItems, oldIndex, newIndex)
+                return nuevoOrdenItems
+            })
+
+            // 2. Guardamos silenciosamente en Supabase
+            try {
+                const idsOrdenados = nuevoOrdenItems.map(item => item.idacceso)
+                await accesorapidoService.updateOrder(idsOrdenados)
+            } catch (error) {
+                console.error(error)
+                setItems(itemsAntiguos)
+                toast.error('Error al guardar el nuevo orden')
+            }
+        }
+    }
 
     const cargar = async () => {
         try {
@@ -97,41 +137,21 @@ export const AccesoRapido = () => {
                             </p>
                         </div>
                     ) : (
-                        <div className='grid grid-cols-6 gap-3'>
-                            {items.map(item => (
-                                <div key={item.idacceso} className='relative group'>
-
-                                    <ProductButton 
-                                        producto={{
-                                            idproducto:     item.idproducto,
-                                            nombre:         item.nombre,
-                                            precio:         item.precio,
-                                            iddepartamento: item.iddepartamento,
-                                            idproveedor:    null,
-                                            codigobarras:   item.codigobarras,
-                                            costo:          0,
-                                            ganancia:       0,
-                                            unidadmedida:   item.unidadmedida,
-                                            stockminimo:    0,
-                                            stockmaximo:    0,
-                                            stockactual:    0,
-                                            activo:         true,
-                                        }}
-                                        onClick={() => {}}
-                                    />
-
-                                    <button
-                                        onClick={() => quitar(item)}
-                                        className='absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-(--color-danger-border) text-white
-                                                   items-center justify-center hidden group-hover:flex transition-all'
-                                        title="Quitar de acceso rápido"
-                                    >
-                                        <IconTrash size={11} />
-                                    </button>
-
+                        /* 1. ENVUELVES CON DNDCONTEXT Y SORTABLECONTEXT */
+                        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+                            <SortableContext items={items.map(i => i.idacceso)} strategy={rectSortingStrategy}>
+                                <div className='grid grid-cols-6 gap-3'>
+                                    {items.map(item => (
+                                        /* 2. USAS TU NUEVO COMPONENTE */
+                                        <SortableProduct 
+                                            key={item.idacceso} 
+                                            item={item} 
+                                            onRemove={quitar} 
+                                        />
+                                    ))}
                                 </div>
-                            ))}
-                        </div>
+                            </SortableContext>
+                        </DndContext>
                     )}
                 </div>
                 {/* SearchModal para buscar y agregar */}
